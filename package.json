@@ -1,0 +1,26 @@
+{
+  "name": "point-token-cli",
+  "version": "1.0.0",
+  "description": "CLI to interact with Point Token Smart Contract",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pointtoken/CLI.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bignumber.js": "^4.0.2",
+    "commander": "^2.11.0",
+    "ethjs": "^0.2.7",
+    "ethjs-format": "^0.2.0",
+    "ethjs-provider-http": "^0.1.6",
+    "ethjs-provider-signer": "^0.1.4",
+    "ethjs-query": "^0.2.6",
+    "ethjs-signer": "^0.1.1",
+    "web3": "^0.20.0"
+  }
+}
