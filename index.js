@@ -70,7 +70,7 @@ let getAchievements = (address) => {
 	let event = pointTokenContractInstanceWeb3.Award({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
-			console.log(r);
+			//console.log(r);
 			console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
 		});
 	});
