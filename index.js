@@ -1,9 +1,13 @@
 'use strict';
-const config = require('./config');
+let config = require('./config');
 const SignerProvider = require('ethjs-provider-signer');
 const sign = require('ethjs-signer').sign;
 const Eth = require('ethjs');
 const format = require('ethjs-format');
+if (!config.ownerAddress || !config.ownerPrivateKey) {
+	config.ownerAddress = process.env.OWNER_ADDRESS;
+	config.ownerPrivateKey = process.env.OWNER_PRIVATE_KEY;
+}
 const provider = new SignerProvider(config.ethNode, {
 	signTransaction: (rawTx, cb) => cb(null, sign(rawTx, config.ownerPrivateKey)),
 	accounts: (cb) => cb(null, [config.ownerAddress]),
