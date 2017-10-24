@@ -74,11 +74,57 @@ let getAchievements = (address) => {
 	let event = pointTokenContractInstanceWeb3.Award({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
-			//console.log(r);
+			console.log(r);
 			console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
 		});
 	});
 };
+let getAchievementsByAwarder = (address) => {
+	//using web3 to format the options correctly
+	let event = pointTokenContractInstanceWeb3.Award({ _from: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	eth.getLogs(event.options).then(result => {
+		result.map(r => {
+			console.log(r);
+			console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+		});
+	});
+};
+let getAwarders = () => {
+	//using web3 to format the options correctly
+	let event = pointTokenContractInstanceWeb3.AwarderAdded({  }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	eth.getLogs(event.options).then(result => {
+		result.map(r => {
+			console.log(r);
+			//console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+		});
+	});
+};
+let getAwards = () => {
+	//using web3 to format the options correctly
+	let event = pointTokenContractInstanceWeb3.AwardAdded({  }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	eth.getLogs(event.options).then(result => {
+		result.map(r => {
+			console.log(r);
+			//console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+		});
+	});
+};
+
+let replay = (node) => {
+	//create new helpers with node
+
+	//call get awards and filter on your address and then call addaward passing awardid
+	//call getachievements by awarder and call Award on each result
+
+};
+
+program
+	.command('getAwarders')
+	.action(getAwarders);
+program
+	.command('getAwards')
+	.action(getAwards);
+
 program
 	.command('addAward <awardId>')
 	.action(addAward);
@@ -100,6 +146,9 @@ program
 program
 	.command('gas')
 	.action(gas);
-
+program
+	.command('getAchievementsByAwarder <address>')
+	.action(getAchievementsByAwarder);
+	
 program.parse(process.argv);
 if (program.args.length === 0) program.help();
