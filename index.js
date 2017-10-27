@@ -4,19 +4,29 @@ const SignerProvider = require('ethjs-provider-signer');
 const sign = require('ethjs-signer').sign;
 const Eth = require('ethjs');
 const format = require('ethjs-format');
+
 if (!config.ownerAddress || !config.ownerPrivateKey) {
 	config.ownerAddress = process.env.OWNER_ADDRESS;
 	config.ownerPrivateKey = process.env.OWNER_PRIVATE_KEY;
 }
+
 const provider = new SignerProvider(config.ethNode, {
 	signTransaction: (rawTx, cb) => cb(null, sign(rawTx, config.ownerPrivateKey)),
 	accounts: (cb) => cb(null, [config.ownerAddress]),
 });
 const eth = new Eth(provider);
+//different objects that target replay node
+const providerReplay = new SignerProvider(config.replayNode, {
+	signTransaction: (rawTx, cb) => cb(null, sign(rawTx, config.ownerPrivateKey)),
+	accounts: (cb) => cb(null, [config.ownerAddress]),
+});
+const ethReplay = new Eth(providerReplay);
 const pointTokenContract = require('./pointToken.json');
 const pointTokenContractInstance = eth.contract(pointTokenContract.abi).at(config.contractAddress);
 const util = require('ethjs-util');
 const BN = require('bn.js');
+
+const pointTokenContractInstanceReplay = ethReplay.contract(pointTokenContract.abi).at(config.contractAddressReplay);
 
 //using web3 for querying logs
 const Web3 = require('web3');
@@ -79,13 +89,21 @@ let getAchievements = (address) => {
 		});
 	});
 };
-let getAchievementsByAwarder = (address) => {
+let replayAchievementsByAwarder = () => {
 	//using web3 to format the options correctly
-	let event = pointTokenContractInstanceWeb3.Award({ _from: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	let event = pointTokenContractInstanceWeb3.Award({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
-			console.log(r);
-			console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+			//console.log(r);
+			let awardId = new BN(util.stripHexPrefix(r.topics[3])).toNumber();
+			let address = r.topics[2].replace("000000000000000000000000","");
+			let amount = web3.toDecimal(r.data.slice(2,66));
+			console.log("Awarding " + awardId + " to " + address + " for " + amount + "POINT tokens.");
+			
+			//pointTokenContractInstance.awardAchievement(address, awardId, amount, { from: config.ownerAddress, gas: config.gas })
+			//.then(r => console.log(r))
+			//.catch(e => console.log(e))
+			console.log("--------------");
 		});
 	});
 };
@@ -99,31 +117,35 @@ let getAwarders = () => {
 		});
 	});
 };
-let getAwards = () => {
+let addAwardReplay = () => {
 	//using web3 to format the options correctly
-	let event = pointTokenContractInstanceWeb3.AwardAdded({  }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	let event = pointTokenContractInstanceWeb3.AwardAdded({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
-			console.log(r);
-			//console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+			let temp = r.data.slice(67,r.data.length);
+			let awardId = new BN(temp.slice(temp - 32,temp.length)).toNumber();;
+			console.log(awardId);
+			//pointTokenContractInstanceReplay.addAward(awardId, { from: config.ownerAddress, gas: config.gas })
+			//.then(r => console.log(r))
+			//.catch(e => console.log(e.message));
+				
 		});
 	});
 };
 
-let replay = (node) => {
-	//create new helpers with node
+let replay = () => {
 
-	//call get awards and filter on your address and then call addaward passing awardid
-	//call getachievements by awarder and call Award on each result
-
+	console.log("To replay all awards on a different blockchain, first run addAwardReplay."); 
+	console.log("After you are sure that all the transactions have been mined from the addAwardReplay, you can call replayAchievementsByAwarder."); 
+	console.log("Oh, and make sure you have enough gas to run the replay!"); 
 };
 
 program
+	.command('replay')
+	.action(replay);
+program
 	.command('getAwarders')
 	.action(getAwarders);
-program
-	.command('getAwards')
-	.action(getAwards);
 
 program
 	.command('addAward <awardId>')
@@ -147,8 +169,11 @@ program
 	.command('gas')
 	.action(gas);
 program
-	.command('getAchievementsByAwarder <address>')
-	.action(getAchievementsByAwarder);
+	.command('replayAchievementsByAwarder')
+	.action(replayAchievementsByAwarder);
+program
+	.command('addAwardReplay')
+	.action(addAwardReplay);
 	
 program.parse(process.argv);
 if (program.args.length === 0) program.help();
