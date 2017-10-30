@@ -89,27 +89,26 @@ let getAchievements = (address) => {
 		});
 	});
 };
-let replayAchievementsByAwarder = () => {
-	//using web3 to format the options correctly
+let achievementsByAwarderReplay = () => {
 	let event = pointTokenContractInstanceWeb3.Award({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
-		result.map(r => {
-			//console.log(r);
-			let awardId = new BN(util.stripHexPrefix(r.topics[3])).toNumber();
-			let address = r.topics[2].replace("000000000000000000000000","");
-			let amount = web3.toDecimal(r.data.slice(2,66));
-			console.log("Awarding " + awardId + " to " + address + " for " + amount + "POINT tokens.");
-			
-			//pointTokenContractInstance.awardAchievement(address, awardId, amount, { from: config.ownerAddress, gas: config.gas })
-			//.then(r => console.log(r))
-			//.catch(e => console.log(e))
-			console.log("--------------");
-		});
+		for (let i = 0; i < result.length; i++) {
+			setTimeout(() => {
+				let awardId = new BN(util.stripHexPrefix(result[i].topics[3])).toNumber();
+				let address = result[i].topics[2].replace("000000000000000000000000", "");
+				let amount = web3.toDecimal(result[i].data.slice(2, 66));
+
+				pointTokenContractInstanceReplay.awardAchievement(address, awardId, amount, { from: config.ownerAddress, gas: config.gas })
+					.then(r => console.log("Awarded " + awardId + " to " + address + " for " + amount + " POINT tokens."  ))
+					.catch(e => console.log(e))
+				console.log("--------------");
+			}, i * config.setTimeoutMilliseconds);
+		}
 	});
 };
 let getAwarders = () => {
 	//using web3 to format the options correctly
-	let event = pointTokenContractInstanceWeb3.AwarderAdded({  }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	let event = pointTokenContractInstanceWeb3.AwarderAdded({}, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
 			console.log(r);
@@ -121,23 +120,28 @@ let addAwardReplay = () => {
 	//using web3 to format the options correctly
 	let event = pointTokenContractInstanceWeb3.AwardAdded({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
-		result.map(r => {
-			let temp = r.data.slice(67,r.data.length);
-			let awardId = new BN(temp.slice(temp - 32,temp.length)).toNumber();;
-			console.log(awardId);
-			//pointTokenContractInstanceReplay.addAward(awardId, { from: config.ownerAddress, gas: config.gas })
-			//.then(r => console.log(r))
-			//.catch(e => console.log(e.message));
-				
-		});
+		//ethereum seems happier if we don't flood 
+		//it with transactions and push one trasaction per block
+		//there must be a better way but this works for now
+		//with a timer that waits 1 minute before sending another transaction
+		for (let i = 0; i < result.length; i++) {
+			setTimeout(() => {
+				let temp = "0x" + result[i].data.slice(67, result[i].data.length);
+				let awardId = web3.toDecimal(temp);
+				pointTokenContractInstanceReplay.addAward(awardId, { from: config.ownerAddress, gas: config.gas })
+					.then(r => console.log("Added award " + awardId))
+					.catch(e => console.log(e.message));
+			}, i * config.setTimeoutMilliseconds);
+
+		}
 	});
 };
 
 let replay = () => {
 
-	console.log("To replay all awards on a different blockchain, first run addAwardReplay."); 
-	console.log("After you are sure that all the transactions have been mined from the addAwardReplay, you can call replayAchievementsByAwarder."); 
-	console.log("Oh, and make sure you have enough gas to run the replay!"); 
+	console.log("To replay all awards on a different blockchain, first run addAwardReplay.");
+	console.log("After you are sure that all the transactions have been mined from the addAwardReplay, you can call replayAchievementsByAwarder.");
+	console.log("Oh, and make sure you have enough gas to run the replay!");
 };
 
 program
@@ -169,11 +173,11 @@ program
 	.command('gas')
 	.action(gas);
 program
-	.command('replayAchievementsByAwarder')
-	.action(replayAchievementsByAwarder);
+	.command('achievementsByAwarderReplay')
+	.action(achievementsByAwarderReplay);
 program
 	.command('addAwardReplay')
 	.action(addAwardReplay);
-	
+
 program.parse(process.argv);
 if (program.args.length === 0) program.help();

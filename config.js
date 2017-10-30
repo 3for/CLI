@@ -6,5 +6,9 @@ module.exports = {
 	"ownerPrivateKey": "",
 	"ethNode": "https://rinkeby.infura.io",
 	"blockFrom": 	686929,
-	"gas": 100000
+	"gas": 1000000,
+	"replayNode": "https://ropsten.infura.io",
+	"contractAddressReplay": "0x7CdD31884166AaE47033c3d7bAB39891F4c2BEDb",
+	"setTimeoutMilliseconds":60000
+
 }
