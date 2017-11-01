@@ -21,7 +21,7 @@ const providerReplay = new SignerProvider(config.replayNode, {
 	accounts: (cb) => cb(null, [config.ownerAddress]),
 });
 const ethReplay = new Eth(providerReplay);
-const pointTokenContract = require('./pointToken.json');
+const pointTokenContract = require('./pointTokenv2.json');
 const pointTokenContractInstance = eth.contract(pointTokenContract.abi).at(config.contractAddress);
 const util = require('ethjs-util');
 const BN = require('bn.js');
@@ -50,18 +50,18 @@ let isAwarder = (address) => {
 		.then(r => console.log(r))
 		.catch(e => console.log(e.message))
 };
-let awardAchievement = (address, awardId, amount, checkIfEarned) => {
-	let event = pointTokenContractInstanceWeb3.Award({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
-	let achievements = [];
+let giveAward = (address, awardId, amount, checkIfEarned) => {
+	let event = pointTokenContractInstanceWeb3.AwardGiven({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+	let awards = [];
 	eth.getLogs(event.options).then(result => {
-		achievements = result.map(r => {
+		awards = result.map(r => {
 			return new BN(util.stripHexPrefix(r.topics[3])).toNumber();
 		});
-		if (achievements.find(a => a == awardId) != undefined && checkIfEarned === "true") {
-			console.log("already earned that achievement");
+		if (awards.find(a => a == awardId) != undefined && checkIfEarned === "true") {
+			console.log("already earned that award");
 		}
 		else {
-			pointTokenContractInstance.awardAchievement(address, awardId, amount, { from: config.ownerAddress, gas: config.gas })
+			pointTokenContractInstance.giveAward(address, awardId, amount,0, { from: config.ownerAddress, gas: config.gas })
 				.then(r => console.log(r))
 				.catch(e => console.log(e))
 
@@ -79,18 +79,17 @@ let balanceOf = (address) => {
 let gas = () => {
 	eth.gasPrice().then(r => console.log(r.toString(10)));
 }
-let getAchievements = (address) => {
-	//using web3 to format the options correctly
-	let event = pointTokenContractInstanceWeb3.Award({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+let getAwards = (address) => {
+	let event = pointTokenContractInstanceWeb3.AwardGiven({ _to: address }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		result.map(r => {
 			console.log(r);
-			console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
+			//console.log(new BN(util.stripHexPrefix(r.topics[3])).toNumber());
 		});
 	});
 };
-let achievementsByAwarderReplay = () => {
-	let event = pointTokenContractInstanceWeb3.Award({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
+let giveAwardReplay = () => {
+	let event = pointTokenContractInstanceWeb3.AwardGiven({ _from: config.ownerAddress }, { fromBlock: config.blockFrom, toBlock: 'latest' });
 	eth.getLogs(event.options).then(result => {
 		for (let i = 0; i < result.length; i++) {
 			setTimeout(() => {
@@ -98,7 +97,7 @@ let achievementsByAwarderReplay = () => {
 				let address = result[i].topics[2].replace("000000000000000000000000", "");
 				let amount = web3.toDecimal(result[i].data.slice(2, 66));
 
-				pointTokenContractInstanceReplay.awardAchievement(address, awardId, amount, { from: config.ownerAddress, gas: config.gas })
+				pointTokenContractInstanceReplay.giveAward(address, awardId, amount, 0, { from: config.ownerAddress, gas: config.gas })
 					.then(r => console.log("Awarded " + awardId + " to " + address + " for " + amount + " POINT tokens."  ))
 					.catch(e => console.log(e))
 				console.log("--------------");
@@ -140,7 +139,7 @@ let addAwardReplay = () => {
 let replay = () => {
 
 	console.log("To replay all awards on a different blockchain, first run addAwardReplay.");
-	console.log("After you are sure that all the transactions have been mined from the addAwardReplay, you can call replayAchievementsByAwarder.");
+	console.log("After you are sure that all the transactions have been mined from the addAwardReplay, you can call giveAwardReplay.");
 	console.log("Oh, and make sure you have enough gas to run the replay!");
 };
 
@@ -161,20 +160,20 @@ program
 	.command('isAwarder <address>')
 	.action(isAwarder);
 program
-	.command('getAchievements <address>')
-	.action(getAchievements);
+	.command('getAwards <address>')
+	.action(getAwards);
 program
 	.command('balanceOf <address>')
 	.action(balanceOf);
 program
-	.command('awardAchievement <address> <awardId> <amount> <checkIfEarned>')
-	.action(awardAchievement);
+	.command('giveAward <address> <awardId> <amount> <checkIfEarned>')
+	.action(giveAward);
 program
 	.command('gas')
 	.action(gas);
 program
-	.command('achievementsByAwarderReplay')
-	.action(achievementsByAwarderReplay);
+	.command('giveAwardReplay')
+	.action(giveAwardReplay);
 program
 	.command('addAwardReplay')
 	.action(addAwardReplay);
