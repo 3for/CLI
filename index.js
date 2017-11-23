@@ -21,7 +21,7 @@ const providerReplay = new SignerProvider(config.replayNode, {
 	accounts: (cb) => cb(null, [config.ownerAddress]),
 });
 const ethReplay = new Eth(providerReplay);
-const pointTokenContract = require('./pointTokenv2.json');
+const pointTokenContract = require('./PointTokenv2.json');
 const pointTokenContractInstance = eth.contract(pointTokenContract.abi).at(config.contractAddress);
 const util = require('ethjs-util');
 const BN = require('bn.js');
